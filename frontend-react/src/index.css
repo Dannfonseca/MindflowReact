@@ -1,0 +1,9 @@
+/*
+  Arquivo: src/index.css
+  Descrição: Arquivo global de estilos que pode ser usado para adicionar CSS base ou importar outros arquivos de estilo. Por simplicidade, mantemos os estilos nos arquivos CSS originais na pasta public.
+*/
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

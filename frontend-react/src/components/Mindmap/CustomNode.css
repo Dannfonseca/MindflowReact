@@ -1,0 +1,255 @@
+/*
+  Arquivo: src/components/Mindmap/CustomNode.css
+  Descrição: Adicionada a classe .hidden-handle para esconder os pontos de conexão de arraste e estilos para o .linking-mode, que muda o cursor e destaca o nó de origem.
+*/
+.custom-node {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 280px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font-family: 'Poppins', sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark-mode .custom-node {
+    border-color: #4a5568;
+}
+
+.custom-node-header {
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid;
+}
+
+.node-title {
+  font-weight: 600;
+  font-size: 16px;
+  outline: none;
+  flex-grow: 1;
+  border-radius: 4px;
+}
+
+.delete-node-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.delete-node-button:hover {
+  color: #ef4444;
+  background-color: #fef2f2;
+}
+.dark-mode .delete-node-button:hover {
+    background-color: #991b1b;
+    color: white;
+}
+.delete-node-button .material-icons {
+    font-size: 18px;
+}
+
+.custom-node-body {
+  padding: 4px 12px 8px 12px;
+  font-size: 14px;
+  flex-grow: 1;
+}
+
+.node-topic {
+  padding: 6px 4px;
+  border-radius: 4px;
+  outline: none;
+  transition: background-color 0.2s;
+  min-height: 1.5em;
+}
+
+.node-title.editing,
+.node-topic.editing {
+  background-color: #ebf8ff;
+  box-shadow: 0 0 0 2px #90cdf4;
+}
+.dark-mode .node-title.editing,
+.dark-mode .node-topic.editing {
+    background-color: #1a202c;
+    box-shadow: 0 0 0 2px #4299e1;
+}
+
+.custom-node-footer {
+  padding: 0 12px 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.add-topic-icon-button {
+  background-color: #f0f4f8;
+  border: none;
+  color: #4a5568;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.dark-mode .add-topic-icon-button {
+    background-color: #4a5568;
+    color: #cbd5e0;
+}
+
+.add-topic-icon-button:hover {
+  background-color: #e2e8f0;
+  color: #007AFF;
+}
+
+.dark-mode .add-topic-icon-button:hover {
+    background-color: #718096;
+}
+
+.add-topic-icon-button .material-icons {
+  font-size: 20px;
+}
+
+.custom-handle {
+    width: 8px !important;
+    height: 8px !important;
+    background: #007AFF !important;
+    border: 2px solid white !important;
+    border-radius: 50% !important;
+    min-width: 8px !important;
+    min-height: 8px !important;
+    transition: transform 0.2s;
+    opacity: 0;
+}
+
+.custom-node:hover .custom-handle {
+    opacity: 1;
+}
+
+.custom-handle:hover {
+    transform: scale(1.5);
+    cursor: crosshair;
+}
+
+.react-flow__handle-connecting {
+    background: #ff6b6b !important;
+    opacity: 1 !important;
+}
+
+.react-flow__handle-valid {
+    background: #51cf66 !important;
+    opacity: 1 !important;
+}
+
+.hidden-handle {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.dark-mode .custom-handle {
+    box-shadow: 0 0 0 1px #2d3748;
+}
+
+.topic-context-menu {
+    position: fixed;
+    z-index: 20001;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 180px;
+}
+.dark-mode .topic-context-menu {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+.topic-context-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: #2d3748;
+    font-size: 14px;
+}
+
+.dark-mode .topic-context-menu button {
+    color: #f7fafc;
+}
+
+.topic-context-menu button:hover {
+    background-color: #f0f4f8;
+}
+.dark-mode .topic-context-menu button:hover {
+    background-color: #4a5568;
+}
+
+.topic-context-menu button .material-icons {
+    font-size: 20px;
+    color: #718096;
+}
+.dark-mode .topic-context-menu button .material-icons {
+    color: #a0aec0;
+}
+
+.format-toolbar {
+    position: fixed;
+    z-index: 20000;
+    background-color: #2d3748;
+    border-radius: 6px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.format-color-picker {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+.format-color-picker::-webkit-color-swatch {
+    border-radius: 4px;
+    border: 1px solid #4a5568;
+}
+.format-color-picker::-moz-color-swatch {
+    border-radius: 4px;
+    border: 1px solid #4a5568;
+}
+
+/* Estilos para o modo de ligação */
+.linking-mode .react-flow__pane {
+    cursor: crosshair;
+}
+
+.linking-mode .custom-node {
+    cursor: crosshair;
+}
+
+.custom-node.selected {
+    box-shadow: 0 0 0 2px #007AFF, 0 4px 12px rgba(0,0,0,0.2);
+    border-color: #007AFF;
+}

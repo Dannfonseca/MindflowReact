@@ -1,8 +1,8 @@
 /*
   Arquivo: src/pages/MindmapPage.js
-  Descrição: Corrigida a inicialização do Socket.IO para usar a URL base e melhorada a geração de IDs de arestas para remover avisos do React.
+  Descrição: Adicionada a funcionalidade de criar flashcards. Um modal é aberto ao clicar na opção, permitindo ao usuário preencher frente e verso do flashcard.
 */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactFlow, {
   ReactFlowProvider,
@@ -10,7 +10,6 @@ import ReactFlow, {
   useEdgesState,
   applyNodeChanges,
   applyEdgeChanges,
-  addEdge,
   MiniMap,
   Controls,
   Background,
@@ -18,12 +17,14 @@ import ReactFlow, {
 } from 'reactflow';
 import io from 'socket.io-client';
 import { useMapsAPI } from '../context/MapProvider';
+import { useFlashcards } from '../context/FlashcardProvider';
 import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../hooks/useTheme';
-import { API_BASE_URL } from '../api'; // Importa a URL base
+import { API_BASE_URL } from '../api';
 import CustomNode from '../components/Mindmap/CustomNode';
 import LinkModal from '../components/LinkModal';
 import ShareModal from '../components/ShareModal';
+import FlashcardModal from '../components/FlashcardModal';
 
 let nodeIdCounter = 1;
 
@@ -31,6 +32,7 @@ const MindmapFlow = () => {
     const { mapId } = useParams();
     const navigate = useNavigate();
     const { getMapById, saveMap, loading: mapsLoading } = useMapsAPI();
+    const { createFlashcard } = useFlashcards();
     const { showNotification } = useNotifications();
     const { nodeColor, fontColor, mapBgColor } = useTheme();
 
@@ -42,12 +44,20 @@ const MindmapFlow = () => {
     const [edges, setEdges, onEdgesChangeInternal] = useEdgesState([]);
     const { screenToFlowPosition } = useReactFlow();
     
-    const [menu, setMenu] = useState(null);
+    const [nodeMenu, setNodeMenu] = useState(null);
+    const [edgeMenu, setEdgeMenu] = useState(null);
     const [isLinkModalOpen, setLinkModalOpen] = useState(false);
     const [isShareModalOpen, setShareModalOpen] = useState(false);
+    const [isFlashcardModalOpen, setFlashcardModalOpen] = useState(false);
     const [activeTopic, setActiveTopic] = useState(null);
-    const menuRef = useRef(null);
+    const [activeFlashcardTopic, setActiveFlashcardTopic] = useState(null);
+
     const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
+    const closeAllMenus = useCallback(() => {
+        setNodeMenu(null);
+        setEdgeMenu(null);
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -56,7 +66,7 @@ const MindmapFlow = () => {
             return;
         }
 
-        const newSocket = io(API_BASE_URL, { // Usa a URL base correta
+        const newSocket = io(API_BASE_URL, {
             auth: { token }
         });
         setSocket(newSocket);
@@ -96,6 +106,15 @@ const MindmapFlow = () => {
         };
     }, [socket, mapId]);
     
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => ({
+                ...node,
+                data: { ...node.data, nodeColor, fontColor },
+            }))
+        );
+    }, [nodeColor, fontColor, setNodes]);
+
     const onNodesChange = useCallback((changes) => {
         onNodesChangeInternal(changes);
         if (socket && mapId) socket.emit('nodes:change', { mapId, changes });
@@ -108,13 +127,30 @@ const MindmapFlow = () => {
 
     const onConnect = useCallback((params) => {
         const newEdge = { 
-            id: `edge-${params.source}-${params.target}-${new Date().getTime()}`, // ID mais robusto
+            id: `edge-${params.source}-${params.target}-${new Date().getTime()}`,
             ...params, 
             type: 'smoothstep', 
             animated: true 
         };
         onEdgesChange([{ item: newEdge, type: 'add' }]);
     }, [onEdgesChange]);
+    
+    const handleTopicContextMenu = useCallback((event, nodeId, topicIndex) => {
+        event.preventDefault();
+        closeAllMenus();
+        setNodeMenu({ nodeId, topicIndex, top: event.clientY, left: event.clientX });
+    }, [closeAllMenus]);
+
+    const onEdgeContextMenu = useCallback((event, edge) => {
+        event.preventDefault();
+        closeAllMenus();
+        setEdgeMenu({ id: edge.id, top: event.clientY, left: event.clientX });
+    }, [closeAllMenus]);
+    
+    const handleDeleteEdge = useCallback((edgeIdToDelete) => {
+        onEdgesChange([{ type: 'remove', id: edgeIdToDelete }]);
+        closeAllMenus();
+    }, [onEdgesChange, closeAllMenus]);
 
     const updateNodeData = useCallback((nodeId, newTopics) => {
         setNodes((nds) =>
@@ -126,25 +162,18 @@ const MindmapFlow = () => {
         onNodesChange([{ id: nodeId, type: 'remove' }]);
     }, [onNodesChange]);
     
-    const handleShowContextMenu = useCallback((event, nodeId, topicIndex) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setMenu({ nodeId, topicIndex, top: event.clientY, left: event.clientX });
-    }, []);
-    
     const convertToFlowData = useCallback((initialMapData) => {
         if (!initialMapData) return;
         const flowNodes = initialMapData.nodes.map(node => ({
             id: node.id, type: 'custom', position: { x: parseFloat(node.left), y: parseFloat(node.top) },
             data: { 
                 topics: node.topics.map(t => ({...t, isEditing: false})),
-                updateNodeData, onShowContextMenu: handleShowContextMenu, onDeleteNode: deleteNode,
-                nodeColor, fontColor
+                updateNodeData, onShowContextMenu: handleTopicContextMenu, onDeleteNode: deleteNode
             },
         }));
         setNodes(flowNodes);
-        const flowEdges = initialMapData.connections.map((conn, i) => ({
-            id: `e${conn.from}-${conn.to}-${i}`, source: conn.from, target: conn.to,
+        const flowEdges = initialMapData.connections.map((conn) => ({
+            ...conn,
             type: 'smoothstep', animated: true
         }));
         setEdges(flowEdges);
@@ -153,7 +182,7 @@ const MindmapFlow = () => {
             return isNaN(num) ? max : Math.max(max, num);
         }, 0);
         nodeIdCounter = maxId + 1;
-    }, [setNodes, setEdges, updateNodeData, handleShowContextMenu, deleteNode, nodeColor, fontColor]);
+    }, [setNodes, setEdges, updateNodeData, handleTopicContextMenu, deleteNode]);
     
     useEffect(() => {
         if (mapId) {
@@ -164,20 +193,24 @@ const MindmapFlow = () => {
             setMapTitle('Novo Mapa Mental'); setNodes([]); setEdges([]);
             setCurrentMap({ title: 'Novo Mapa Mental', nodes: [], connections: [] });
         }
-    }, [mapId, getMapById, navigate, mapsLoading, convertToFlowData]);
+    }, [mapId, getMapById, navigate, mapsLoading, convertToFlowData, setNodes, setEdges]);
     
-    const handleSave = useCallback(async () => {
-        const apiNodes = nodes.map(node => ({
+    const handleSave = useCallback(async (nodesToSave = nodes) => {
+        const apiNodes = nodesToSave.map(node => ({
             id: node.id, left: `${node.position.x}px`, top: `${node.position.y}px`,
             width: `${node.width}px`, height: `${node.height}px`,
             topics: node.data.topics.map(({ isEditing, ...rest }) => rest),
         }));
-        const apiConnections = edges.map(edge => ({ from: edge.source, to: edge.target }));
+
+        const apiConnections = edges
+            .filter(edge => edge && edge.id && edge.source && edge.target)
+            .map(({ id, source, target }) => ({ id, source, target }));
+
         const mapToSave = { id: currentMap?._id, title: mapTitle, nodes: apiNodes, connections: apiConnections };
         const saved = await saveMap(mapToSave);
         if (saved && !mapId) { navigate(`/app/mindmap/${saved._id}`, { replace: true }); }
-        else if (saved) { setCurrentMap(saved); showNotification('Mapa salvo com sucesso!', 'success'); }
-    }, [nodes, edges, mapTitle, currentMap, saveMap, mapId, navigate, showNotification]);
+        else if (saved) { setCurrentMap(saved); }
+    }, [nodes, edges, mapTitle, currentMap, saveMap, mapId, navigate]);
 
     const addNode = useCallback(() => {
         const newId = `node-${nodeIdCounter++}`;
@@ -186,34 +219,68 @@ const MindmapFlow = () => {
             id: newId, type: 'custom', position,
             data: {
                 topics: [{ text: 'Novo Tópico', links: [], isEditing: true }],
-                updateNodeData, onShowContextMenu: handleShowContextMenu, onDeleteNode: deleteNode,
-                nodeColor, fontColor
+                updateNodeData, onShowContextMenu: handleTopicContextMenu, onDeleteNode: deleteNode,
             },
         };
         onNodesChange([{ item: newNode, type: 'add' }]);
-    }, [screenToFlowPosition, onNodesChange, updateNodeData, handleShowContextMenu, deleteNode, nodeColor, fontColor]);
+    }, [screenToFlowPosition, onNodesChange, updateNodeData, handleTopicContextMenu, deleteNode]);
     
     const handleMenuAction = (action) => {
-        if (!menu) return;
-        const { nodeId, topicIndex } = menu;
+        if (!nodeMenu) return;
+        const { nodeId, topicIndex } = nodeMenu;
         const node = nodes.find(n => n.id === nodeId);
         const topic = node?.data.topics[topicIndex];
         if (!topic) return;
+        
+        closeAllMenus();
+
         switch (action) {
             case 'edit':
                 const newNodes = nodes.map(n => n.id === nodeId ? { ...n, data: { ...n.data, topics: n.data.topics.map((t, i) => i === topicIndex ? { ...t, isEditing: true } : { ...t, isEditing: false }) } } : n);
                 setNodes(newNodes);
                 break;
-            case 'links': setActiveTopic({ nodeId, topicIndex, ...topic }); setLinkModalOpen(true); break;
-            default: showNotification(`Funcionalidade "${action}" não implementada.`, 'error'); break;
+            case 'links': 
+                setActiveTopic({ nodeId, topicIndex, ...topic }); 
+                setLinkModalOpen(true); 
+                break;
+            case 'flashcard': 
+                setActiveFlashcardTopic(topic);
+                setFlashcardModalOpen(true);
+                break;
+            case 'wordcloud': 
+                showNotification('Funcionalidade "Nuvem de Palavras" ainda não implementada.', 'info'); 
+                break;
+            case 'audio': 
+                showNotification('Funcionalidade "Gerar Áudio" ainda não implementada.', 'info'); 
+                break;
+            case 'questions': 
+                showNotification('Funcionalidade "Trilha de Questões" ainda não implementada.', 'info'); 
+                break;
+            default: 
+                showNotification(`Funcionalidade "${action}" não implementada.`, 'error'); 
+                break;
         }
-        setMenu(null);
     };
 
-    const handleSaveLinks = (nodeId, topicIndex, newLinks) => {
-        const newNodes = nodes.map(n => n.id === nodeId ? { ...n, data: { ...n.data, topics: n.data.topics.map((t, i) => i === topicIndex ? { ...t, links: newLinks } : t) } } : n);
-        onNodesChange(newNodes.map(n => ({ id: n.id, type: 'replace', node: n })));
-        showNotification('Links atualizados. Salve o mapa para persistir as alterações.', 'success');
+    const handleCreateFlashcard = async (flashcardData) => {
+        try {
+            await createFlashcard(flashcardData);
+            showNotification('Flashcard criado com sucesso!', 'success');
+            setFlashcardModalOpen(false);
+        } catch (error) {
+            showNotification(error.message || 'Erro ao criar o flashcard.', 'error');
+        }
+    };
+
+    const handleSaveLinks = async (nodeId, topicIndex, newLinks) => {
+        const newNodes = nodes.map(n => 
+            n.id === nodeId 
+                ? { ...n, data: { ...n.data, topics: n.data.topics.map((t, i) => i === topicIndex ? { ...t, links: newLinks } : t) } } 
+                : n
+        );
+        setNodes(newNodes);
+        await handleSave(newNodes);
+        showNotification('Links atualizados e mapa salvo com sucesso!', 'success');
     };
 
     if (!currentMap && mapId && !mapsLoading) {
@@ -243,7 +310,13 @@ const MindmapFlow = () => {
                 </button>
             </div>
             <div className="flex-grow relative" style={{ height: '100%', backgroundColor: mapBgColor }}>
-                <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} nodeTypes={nodeTypes} onPaneClick={() => setMenu(null)} fitView proOptions={{ hideAttribution: true }}>
+                <ReactFlow 
+                    nodes={nodes} edges={edges} 
+                    onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} 
+                    nodeTypes={nodeTypes} onPaneClick={closeAllMenus} onNodeClick={closeAllMenus}
+                    onEdgeContextMenu={onEdgeContextMenu}
+                    fitView proOptions={{ hideAttribution: true }}
+                >
                     <Controls />
                     <MiniMap nodeColor={(node) => node.data.nodeColor || '#ffffff'} nodeStrokeWidth={3} zoomable pannable />
                     <Background variant="dots" gap={12} size={1} />
@@ -251,16 +324,28 @@ const MindmapFlow = () => {
                         <button onClick={addNode} className="bg-white p-2.5 rounded-lg shadow-md hover:bg-gray-200 transition-colors" title="Adicionar novo card">
                             <span className="material-icons text-gray-700">add</span>
                         </button>
-                        <button onClick={handleSave} className="button-primary font-semibold py-2.5 px-5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 flex items-center text-sm">
+                        <button onClick={() => handleSave()} className="button-primary font-semibold py-2.5 px-5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 flex items-center text-sm">
                             <span className="material-icons text-sm mr-2">save</span>
                             Salvar Mapa
                         </button>
                     </div>
                 </ReactFlow>
-                {menu && (
-                    <div style={{ top: menu.top, left: menu.left }} className="topic-context-menu" ref={menuRef}>
+                {nodeMenu && (
+                    <div style={{ top: nodeMenu.top, left: nodeMenu.left }} className="topic-context-menu">
                         <button onClick={() => handleMenuAction('edit')}><span className="material-icons">edit</span> Editar Tópico</button>
                         <button onClick={() => handleMenuAction('links')}><span className="material-icons">link</span> Gerenciar Links</button>
+                        <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
+                        <button onClick={() => handleMenuAction('flashcard')}><span className="material-icons">style</span> Gerar Flashcard</button>
+                        <button onClick={() => handleMenuAction('wordcloud')}><span className="material-icons">cloud</span> Nuvem de Palavras</button>
+                        <button onClick={() => handleMenuAction('audio')}><span className="material-icons">volume_up</span> Gerar Áudio</button>
+                        <button onClick={() => handleMenuAction('questions')}><span className="material-icons">quiz</span> Trilha de Questões</button>
+                    </div>
+                )}
+                {edgeMenu && (
+                    <div style={{ top: edgeMenu.top, left: edgeMenu.left }} className="edge-delete-menu">
+                        <button onClick={() => handleDeleteEdge(edgeMenu.id)} className="edge-delete-button" title="Deletar conexão">
+                            &times;
+                        </button>
                     </div>
                 )}
                 {activeTopic && (
@@ -269,6 +354,15 @@ const MindmapFlow = () => {
                         onClose={() => setLinkModalOpen(false)}
                         topic={activeTopic}
                         onSave={handleSaveLinks}
+                    />
+                )}
+                {activeFlashcardTopic && (
+                    <FlashcardModal
+                        isOpen={isFlashcardModalOpen}
+                        onClose={() => setFlashcardModalOpen(false)}
+                        topic={activeFlashcardTopic}
+                        mapId={mapId}
+                        onSubmit={handleCreateFlashcard}
                     />
                 )}
                 {mapId && (

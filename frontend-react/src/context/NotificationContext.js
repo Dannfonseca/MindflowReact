@@ -1,43 +1,41 @@
 /*
   Arquivo: src/context/NotificationContext.js
-  Descrição: Gerencia o estado das notificações (toasts) de forma global através de um Contexto React. Fornece uma função `showNotification` que pode ser chamada de qualquer lugar da aplicação para exibir mensagens de sucesso ou erro.
+  Descrição: Corrigido o erro de compilação exportando a variável NotificationContext e removendo a definição duplicada do hook useNotifications.
 */
 import React, { createContext, useState, useCallback } from 'react';
-import ReactDOM from 'react-dom';
 import Notification from '../components/Notification';
+import './NotificationContext.css';
 
 export const NotificationContext = createContext();
-
-let nextId = 0;
 
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
 
-    const showNotification = useCallback((message, type = 'success') => {
-        const id = nextId++;
-        setNotifications((prev) => [...prev, { id, message, type }]);
-    }, []);
-
     const removeNotification = useCallback((id) => {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        setNotifications(prev => prev.filter(n => n.id !== id));
     }, []);
 
-    const notificationContainer = document.getElementById('notification-container');
+    const showNotification = useCallback((message, type = 'info') => {
+        const id = new Date().getTime();
+        setNotifications(prev => [...prev, { id, message, type }]);
+        
+        setTimeout(() => {
+            removeNotification(id);
+        }, 3000);
+    }, [removeNotification]);
 
     return (
         <NotificationContext.Provider value={{ showNotification }}>
             {children}
-            {notificationContainer && ReactDOM.createPortal(
-                notifications.map((n) => (
-                    <Notification
-                        key={n.id}
-                        message={n.message}
-                        type={n.type}
-                        onRemove={() => removeNotification(n.id)}
+            <div className="notification-wrapper">
+                {notifications.map(note => (
+                    <Notification 
+                        key={note.id} 
+                        message={note.message} 
+                        type={note.type}
                     />
-                )),
-                notificationContainer
-            )}
+                ))}
+            </div>
         </NotificationContext.Provider>
     );
 };

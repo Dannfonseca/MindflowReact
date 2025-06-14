@@ -1,6 +1,6 @@
 /*
   Arquivo: /css/components.css
-  Descrição: Adicionados estilos e animações para o novo sistema de notificações (toasts).
+  Descrição: Corrigido o posicionamento do menu de exclusão de aresta, trocando 'position: absolute' por 'position: fixed' para alinhar ao clique do mouse.
 */
 /* Animações de Notificação */
 @keyframes slideInRight {
@@ -221,6 +221,60 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 .remove-link-btn:hover {
     color: #ef4444;
+}
+
+/* Estilos para o menu de exclusão de Aresta/Linha */
+.edge-delete-menu {
+    position: fixed; /* Alterado de 'absolute' para 'fixed' */
+    z-index: 10000;
+    transform: translate(-50%, -50%); /* Centraliza o menu no ponto exato do clique */
+}
+
+.edge-delete-button {
+    background-color: #f0f4f8; 
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease-in-out;
+}
+
+.edge-delete-button:hover {
+    transform: scale(1.1);
+    background-color: #ef4444; 
+    border-color: #dc2626;
+    color: white;
+}
+
+.dark-mode .edge-delete-button {
+    background-color: #4a5568;
+    color: #cbd5e0;
+    border-color: #718096;
+}
+
+.dark-mode .edge-delete-button:hover {
+    border-color: #ef4444;
+}
+
+
+/* Efeito de Vidro */
+.glass-effect {
+    background-color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.dark-mode .glass-effect {
+    background-color: rgba(26, 32, 44, 0.7);
 }
 
 

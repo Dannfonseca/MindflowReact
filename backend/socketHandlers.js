@@ -1,6 +1,6 @@
 /*
   Arquivo: socketHandlers.js
-  Descrição: Versão final com autenticação de socket via JWT e verificação de permissões antes de permitir que um usuário entre em uma sala de edição de mapa.
+  Descrição: Atualizado o handler de 'edges:change' para conseguir processar a remoção de uma conexão específica pelo seu ID.
 */
 import Map from './models/Map.js';
 import Permission from './models/Permission.js';
@@ -8,7 +8,6 @@ import jwt from 'jsonwebtoken';
 
 export default function initializeSocketHandlers(io) {
 
-    // Middleware de autenticação para Sockets
     io.use((socket, next) => {
         const token = socket.handshake.auth.token;
         if (!token) {
@@ -55,7 +54,6 @@ export default function initializeSocketHandlers(io) {
         });
 
         socket.on('nodes:change', async ({ mapId, changes }) => {
-            // Apenas transmite se o cliente estiver na sala correta
             if (socket.rooms.has(mapId)) {
                 socket.to(mapId).emit('nodes:updated', changes);
                 
@@ -91,7 +89,9 @@ export default function initializeSocketHandlers(io) {
                     
                     changes.forEach(change => {
                         if (change.type === 'add') {
-                            map.connections.push({ from: change.item.source, to: change.item.target });
+                            map.connections.push(change.item);
+                        } else if (change.type === 'remove') {
+                           map.connections = map.connections.filter(conn => conn.id !== change.id);
                         }
                     });
                     

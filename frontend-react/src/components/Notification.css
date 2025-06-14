@@ -1,0 +1,40 @@
+/*
+  Arquivo: src/components/Notification.css
+  Descrição: Estilos para o componente de notificação (toast).
+*/
+.notification {
+    min-width: 300px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    opacity: 0;
+    transform: translateX(100%);
+    animation: slideIn 0.5s forwards;
+    color: #fff;
+}
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification.info {
+    background-color: #0369A1; /* Azul escuro */
+}
+
+.notification.success {
+    background-color: #15803D; /* Verde escuro */
+}
+
+.notification.error {
+    background-color: #B91C1C; /* Vermelho escuro */
+}
+
+.notification-icon {
+    font-size: 24px;
+}

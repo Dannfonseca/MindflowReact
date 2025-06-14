@@ -1,6 +1,6 @@
 /*
   Arquivo: src/components/Mindmap/CustomNode.js
-  Descrição: Versão corrigida com 'id's únicos para cada Handle, o que é essencial para o React Flow diferenciar os pontos de conexão e permitir que os links sejam criados corretamente.
+  Descrição: Adicionado 'e.stopPropagation()' nos eventos de clique dos tópicos para impedir a propagação do evento para o nó pai, corrigindo o conflito que impedia a abertura do menu de contexto.
 */
 import React, { useEffect, useRef } from 'react';
 import { Handle, Position } from 'reactflow';
@@ -9,10 +9,7 @@ import './CustomNode.css';
 const CustomNode = ({ id, data }) => {
   const { topics = [], updateNodeData, onDeleteNode, onShowContextMenu, nodeColor, fontColor } = data;
   const nodeRef = useRef(null);
-  const menuRef = useRef(null);
   const toolbarRef = useRef(null);
-
-  const [menu, setMenu] = React.useState(null);
   const [formatToolbar, setFormatToolbar] = React.useState(null);
 
   useEffect(() => {
@@ -36,12 +33,8 @@ const CustomNode = ({ id, data }) => {
     const handleClickOutside = (event) => {
         if (event.button !== 0) return;
         
-        const isMenuClick = menuRef.current && menuRef.current.contains(event.target);
         const isToolbarClick = toolbarRef.current && toolbarRef.current.contains(event.target);
 
-        if (menu && !isMenuClick) {
-            setMenu(null);
-        }
         if (formatToolbar && !isToolbarClick) {
             const selection = window.getSelection();
             if(selection.isCollapsed) {
@@ -51,14 +44,7 @@ const CustomNode = ({ id, data }) => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menu, formatToolbar]);
-
-  const setTopicEditing = (index, isEditing) => {
-    const newTopics = topics.map((topic, i) => 
-      i === index ? { ...topic, isEditing } : { ...topic, isEditing: false }
-    );
-    updateNodeData(id, newTopics);
-  };
+  }, [formatToolbar]);
 
   const addNewTopic = () => {
     const newTopics = [
@@ -145,7 +131,10 @@ const CustomNode = ({ id, data }) => {
               onKeyDown={handleKeyDown}
               onBlur={e => handleBlur(e, 0)}
               onMouseUp={handleMouseUp}
-              onContextMenu={e => onShowContextMenu(e, id, 0)}
+              onClick={e => {
+                e.stopPropagation();
+                onShowContextMenu(e, id, 0);
+              }}
               dangerouslySetInnerHTML={{ __html: topics[0].text }}
             />
           )}
@@ -165,7 +154,10 @@ const CustomNode = ({ id, data }) => {
               onKeyDown={handleKeyDown}
               onBlur={e => handleBlur(e, index + 1)}
               onMouseUp={handleMouseUp}
-              onContextMenu={e => onShowContextMenu(e, id, index + 1)}
+              onClick={e => {
+                e.stopPropagation();
+                onShowContextMenu(e, id, index + 1);
+              }}
               dangerouslySetInnerHTML={{ __html: topic.text }}
             />
           ))}
@@ -176,16 +168,7 @@ const CustomNode = ({ id, data }) => {
             <span className="material-icons">add</span>
           </button>
         </div>
-
-        <Handle type="both" position={Position.Bottom} id="bottom" className="custom-handle" />
-        <Handle type="both" position={Position.Right} id="right" className="custom-handle" />
       </div>
-
-      {menu && (
-        <div style={{ top: menu.top, left: menu.left }} className="topic-context-menu" ref={menuRef}>
-          <button onClick={() => setTopicEditing(menu.topicIndex, true)}>Editar Tópico</button>
-        </div>
-      )}
 
       {formatToolbar && (
         <div 

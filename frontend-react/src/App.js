@@ -1,6 +1,6 @@
 /*
   Arquivo: src/App.js
-  Descrição: Adicionada a nova rota pública /view/:shareId para a página de visualização de mapas compartilhados.
+  Descrição: Adicionada a nova rota /app/map/:mapId/study para a página de estudo de flashcards.
 */
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -15,6 +15,7 @@ import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import PublicMapView from './pages/PublicMapView';
+import StudyPage from './pages/StudyPage'; // Importa a nova página
 
 function App() {
   const { theme, fontSize } = useTheme();
@@ -28,24 +29,14 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/view/:shareId" element={<PublicMapView />} />
 
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="mindmap" element={<MindmapPage />} />
             <Route path="mindmap/:mapId" element={<MindmapPage />} />
+            <Route path="map/:mapId/study" element={<StudyPage />} /> {/* Adiciona a nova rota */}
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="admin" element={
-                <ProtectedRoute adminOnly={true}>
-                    <AdminPage />
-                </ProtectedRoute>
-            } />
+            <Route path="admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </Router>

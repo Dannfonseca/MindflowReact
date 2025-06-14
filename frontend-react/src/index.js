@@ -1,6 +1,6 @@
 /*
   Arquivo: src/index.js
-  Descrição: Ponto de entrada da aplicação React. Envolve a aplicação com os provedores de contexto e importa os estilos do React Flow.
+  Descrição: Adicionado o novo FlashcardProvider para que toda a aplicação tenha acesso ao contexto dos flashcards.
 */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -10,6 +10,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MapProvider } from './context/MapProvider';
+import { FlashcardProvider } from './context/FlashcardProvider'; // Importa o novo provider
 
 import 'reactflow/dist/style.css';
 
@@ -19,9 +20,11 @@ root.render(
     <NotificationProvider>
       <AuthProvider>
         <MapProvider>
-          <ThemeProvider>
-            <App />
-          </ThemeProvider>
+          <FlashcardProvider> {/* Adiciona o provider na árvore de componentes */}
+            <ThemeProvider>
+              <App />
+            </ThemeProvider>
+          </FlashcardProvider>
         </MapProvider>
       </AuthProvider>
     </NotificationProvider>

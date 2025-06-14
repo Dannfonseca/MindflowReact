@@ -1,8 +1,8 @@
 /*
   Arquivo: src/context/MapProvider.js
-  Descrição: Corrigido reimplementando a lógica das funções saveMap, deleteMap e generateShareLink, que estavam ausentes, restaurando a funcionalidade de salvar e compartilhar mapas.
+  Descrição: Adicionado fallback para array vazio ([]) ao definir os mapas, prevenindo o erro que quebrava o Dashboard.
 */
-import React, { createContext, useState, useCallback, useContext } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
 import { fetchWithAuth, API_URL } from '../api';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../hooks/useAuth';
@@ -29,14 +29,20 @@ export const MapProvider = ({ children }) => {
                 fetchWithAuth(`${API_URL}/maps/shared-with-me`)
             ]);
 
-            if (!myMapsRes.ok) throw new Error('Falha ao buscar seus mapas');
-            if (!sharedMapsRes.ok) throw new Error('Falha ao buscar mapas compartilhados');
-            
             const myMapsData = await myMapsRes.json();
             const sharedMapsData = await sharedMapsRes.json();
-            
-            setMyMaps(myMapsData);
-            setSharedMaps(sharedMapsData);
+
+            if (myMapsRes.ok) {
+                setMyMaps(Array.isArray(myMapsData) ? myMapsData : []);
+            } else {
+                throw new Error(myMapsData.message || 'Falha ao buscar seus mapas');
+            }
+
+            if (sharedMapsRes.ok) {
+                setSharedMaps(Array.isArray(sharedMapsData) ? sharedMapsData : []);
+            } else {
+                throw new Error(sharedMapsData.message || 'Falha ao buscar mapas compartilhados');
+            }
         } catch (err) {
             showNotification(err.message, 'error');
             setMyMaps([]);
@@ -46,35 +52,43 @@ export const MapProvider = ({ children }) => {
         }
     }, [showNotification, isAuthenticated]);
     
+    const createNewMap = async () => {
+        try {
+            const response = await fetchWithAuth(`${API_URL}/maps`, {
+                method: 'POST',
+                body: JSON.stringify({ title: 'Novo Mapa Mental', nodes: [], connections: [] }),
+            });
+            const newMap = await response.json();
+            if (response.ok) {
+                fetchAllMaps();
+                showNotification('Novo mapa mental criado com sucesso!', 'success');
+                return newMap;
+            } else {
+                throw new Error(newMap.message);
+            }
+        } catch (error) {
+            showNotification(error.message || 'Erro ao criar novo mapa.', 'error');
+            return null;
+        }
+    };
+
     const saveMap = async (mapData) => {
+        const url = mapData._id ? `${API_URL}/maps/${mapData._id}` : `${API_URL}/maps`;
+        const method = mapData._id ? 'PUT' : 'POST';
+        
         setLoading(true);
         try {
-            const res = await fetchWithAuth(`${API_URL}/maps`, { 
-                method: 'POST', 
+            const res = await fetchWithAuth(url, { 
+                method: method, 
                 body: JSON.stringify(mapData) 
             });
             if (!res.ok) {
                 const errData = await res.json();
-                throw new Error(errData.msg || 'Falha ao salvar o mapa');
+                throw new Error(errData.msg || `Falha ao ${method === 'PUT' ? 'atualizar' : 'salvar'} o mapa`);
             }
             const savedMap = await res.json();
             
-            // Atualiza o estado local para refletir o mapa salvo
-            const isShared = sharedMaps.some(m => m._id === savedMap._id);
-            if(isShared) {
-                setSharedMaps(prev => prev.map(m => m._id === savedMap._id ? savedMap : m));
-            } else {
-                 setMyMaps(prev => {
-                    const index = prev.findIndex(m => m._id === savedMap._id);
-                    if (index > -1) {
-                        const newMaps = [...prev];
-                        newMaps[index] = savedMap;
-                        return newMaps;
-                    }
-                    return [savedMap, ...prev];
-                });
-            }
-
+            fetchAllMaps();
             showNotification('Mapa salvo com sucesso!', 'success');
             return savedMap;
         } catch (err) {
@@ -85,8 +99,8 @@ export const MapProvider = ({ children }) => {
         }
     };
     
-    const deleteMap = async (mapId) => {
-        if (!window.confirm('Tem certeza que deseja apagar este mapa permanentemente?')) return;
+    const deleteMap = async (mapId, mapTitle) => {
+        if (!window.confirm(`Tem certeza que deseja apagar o mapa "${mapTitle}" permanentemente?`)) return;
         setLoading(true);
         try {
             const res = await fetchWithAuth(`${API_URL}/maps/${mapId}`, { method: 'DELETE' });
@@ -163,6 +177,7 @@ export const MapProvider = ({ children }) => {
         sharedMaps,
         loading,
         fetchAllMaps,
+        createNewMap,
         saveMap,
         deleteMap,
         getMapById,

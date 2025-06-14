@@ -1,5 +1,7 @@
-// Arquivo: /models/Map.js
-// Descrição: Schema do mapa atualizado para suportar compartilhamento público e links nos tópicos.
+/*
+  Arquivo: /models/Map.js
+  Descrição: Atualizado o schema para que cada conexão (aresta) tenha um ID único, permitindo sua exclusão de forma confiável.
+*/
 import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
@@ -22,6 +24,12 @@ const NodeSchema = new Schema({
     topics: { type: [TopicSchema], default: [] }
 }, { _id: false });
 
+const ConnectionSchema = new Schema({
+    id: { type: String, required: true },
+    source: { type: String, required: true },
+    target: { type: String, required: true }
+}, { _id: false });
+
 const MapSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
@@ -38,7 +46,7 @@ const MapSchema = new Schema({
         default: []
     },
     connections: {
-        type: Array,
+        type: [ConnectionSchema],
         default: []
     },
     isPublic: {

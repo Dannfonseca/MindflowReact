@@ -1,0 +1,62 @@
+/*
+  Arquivo: public/css/layout.css
+  Descrição: Mantidos os z-index corretos e adicionado um fundo sólido à sidebar para garantir opacidade e clicabilidade.
+*/
+
+/* --- Estrutura Principal --- */
+#main-container {
+    width: 100%;
+}
+
+#app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 50; /* O mais alto para ficar na frente de tudo */
+    background-color: #ffffff; /* Fundo sólido para garantir opacidade */
+    border-right: 1px solid #e2e8f0;
+}
+
+/* Regra específica para o fundo da sidebar no modo escuro */
+.dark-mode #app-sidebar {
+    background-color: #1a202c;
+    border-right-color: #2d3748;
+}
+
+#app-sidebar.sidebar-mobile-open {
+    transform: translateX(0);
+}
+
+#sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 49; /* Logo abaixo da sidebar */
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+main {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+
+/* --- Media Queries para Layout Responsivo --- */
+
+/* Telas de tablet e desktop */
+@media (min-width: 768px) {
+    #app-sidebar {
+        transform: translateX(0);
+    }
+}

@@ -1,6 +1,6 @@
 /*
   Arquivo: /css/components.css
-  Descrição: Corrigido o posicionamento do menu de exclusão de aresta, trocando 'position: absolute' por 'position: fixed' para alinhar ao clique do mouse.
+  Descrição: Adicionado o estilo para .button-secondary.
 */
 /* Animações de Notificação */
 @keyframes slideInRight {
@@ -135,6 +135,19 @@
 .font-size-btn.active { background-color: #007AFF; color: white; border-color: #007AFF; }
 .button-primary { background-color: #007AFF; color: white; }
 .button-primary:hover { background-color: #005ECC; }
+
+.button-secondary {
+    background-color: var(--secondary-button-bg);
+    color: var(--secondary-button-text);
+    border: 1px solid var(--secondary-button-border);
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.button-secondary:hover {
+    background-color: var(--secondary-button-bg-hover);
+    color: var(--secondary-button-text-hover);
+    border-color: var(--secondary-button-border-hover);
+}
 
 
 /* Menu de Contexto e Barra de Formatação */
